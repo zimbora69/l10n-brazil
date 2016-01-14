@@ -21,6 +21,7 @@ from . import l10n_br_account
 from . import res_partner
 from . import res_company
 from . import account
+from . import withholding_tax
 from . import account_invoice
 from . import product
 from . import account_fiscal_position_rule

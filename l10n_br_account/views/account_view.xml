@@ -34,6 +34,12 @@
  			<field name="model">account.tax</field>
  			<field name="inherit_id" ref="account.view_tax_form"/>
  			<field name="arch" type="xml">
+ 				<group string="Misc">
+                 	<group string="Withholding">
+                 		<field name="withholding_type"/>
+                 		<field name="withholding_amount"/>
+                 	</group>
+                 </group>
  				<field name="account_collected_id" position="after">
  					<field name="account_deduced_id" domain="[('type','&lt;&gt;','view'),('type','&lt;&gt;','consolidation')]"/>
  				</field>
