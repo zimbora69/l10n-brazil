@@ -78,6 +78,48 @@ class AccountInvoice(models.Model):
         ('company_id','=',company_id)]", readonly=True,
         states={'draft': [('readonly', False)]},
         default=_default_fiscal_document_serie)
+    state = fields.Selection(selection_add=[
+                         ('nfse_export', u'Enviar para Prefeitura'),
+                         ('nfse_exception', u'Erro de autorização da Prefeitura'),
+                         ('nfse_cancelled', u'Cancelado na Prefeitura'),
+                         ('nfse_denied', u'Denegada na Prefeitura')])
+    
+    
+    @api.multi
+    def nfse_check(self):
+        for record in self:
+            return True
+        
+    
+    @api.one    
+    def nfse_export(self):
+        self.write({'state': 'nfse_export'})
+        return True
+    
+    #open : when nfse is issued
+    #nfse_exception : when there is some unexpected issue in generating nfse
+    #nfse_denied : when nfse fails in authorization
+    @api.one
+    def action_invoice_send_nfse(self):
+        self.write({'state' : 'open'})
+        #self.write({'state' : 'nfse_exception'})
+        #self.write({'state' : 'nfse_denied'})
+        return True
+    
+    @api.multi
+    def nfse_cancel(self):
+        self.ensure_one()
+        #cancel nfse here
+        return self.button_cancel()
+        
+        
+    def button_cancel(self, cr, uid, ids, context=None):
+        assert len(ids) == 1, ('This option should only be used for a single '
+                               'id at a time.')
+        if context is None:
+            context = {}
+        inv = self.browse(cr, uid, ids[0], context=context)
+        return super(AccountInvoice, self).action_cancel(cr, uid, [inv.id], context)
 
 
 class AccountInvoiceLine(models.Model):
