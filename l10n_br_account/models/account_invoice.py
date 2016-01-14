@@ -110,8 +110,45 @@ class AccountInvoice(models.Model):
         'l10n_br_account.document_event', 'document_event_ids',
         u'Eventos')
     fiscal_comment = fields.Text(u'Observação Fiscal')
+    amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
+    amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
+    withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines')
 
     _order = 'internal_number desc'
+    
+    @api.one
+    @api.depends('invoice_line.price_subtotal', 'withholding_tax_lines.amount')
+    def get_amount_tax_withholding(self):
+        total_withholding = 0.0
+        for line in self.withholding_tax_lines:
+            total_withholding += line.amount
+        self.amount_tax_withholding = total_withholding 
+        self.amount_total_liquid =  self.amount_total - self.amount_tax_withholding
+    
+    @api.multi
+    def button_reset_taxes(self):
+        account_withholding_tax = self.env['withholding.tax.line']
+        ctx = dict(self._context)
+        for invoice in self:
+            self._cr.execute("DELETE FROM withholding_tax_line WHERE invoice_id=%s AND manual is False", (invoice.id,))
+            self.invalidate_cache()
+            partner = invoice.partner_id
+            if partner.lang:
+                ctx['lang'] = partner.lang
+            for taxe in account_withholding_tax.compute_withholding(invoice.with_context(ctx)).values():
+                account_withholding_tax.create(taxe)
+        # dummy write on self to trigger recomputations
+        return super(AccountInvoice,self).button_reset_taxes()
+    
+    @api.multi
+    def check_tax_lines(self, compute_taxes):
+        super(AccountInvoice,self).check_tax_lines(compute_taxes)
+        account_withholding_tax = self.env['withholding.tax.line']
+        company_currency = self.company_id.currency_id
+        if not self.withholding_tax_lines:
+            compute_taxes = account_withholding_tax.compute_withholding(self.with_context(lang=self.partner_id.lang))
+            for tax in compute_taxes.values():
+                account_withholding_tax.create(tax)
 
     @api.one
     @api.constrains('number')
