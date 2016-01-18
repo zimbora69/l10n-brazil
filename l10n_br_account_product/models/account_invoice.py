@@ -714,7 +714,8 @@ class AccountInvoiceLine(models.Model):
         'Outros Custos', digits=dp.get_precision('Account'), default=0.00)
     freight_value = fields.Float(
         'Frete', digits=dp.get_precision('Account'), default=0.00)
-
+    fiscal_comment = fields.Text(u'Observação Fiscal')
+    
     def _amount_tax_icms(self, tax=None):
         result = {
             'icms_base': tax.get('total_base', 0.0),
