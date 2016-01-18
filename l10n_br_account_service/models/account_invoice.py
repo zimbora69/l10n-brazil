@@ -80,8 +80,9 @@ class AccountInvoice(models.Model):
         default=_default_fiscal_document_serie)
     state = fields.Selection(selection_add=[
                          ('nfse_export', u'Enviar para Prefeitura'),
+                         ('nfse_issuing', u'WAITING FOR ISSUING APPROVAL'),
                          ('nfse_exception', u'Erro de autorização da Prefeitura'),
-                         ('nfse_cancelled', u'Cancelado na Prefeitura'),
+                         ('nfse_cancelled', u'Waiting for Cancellation'),
                          ('nfse_denied', u'Denegada na Prefeitura')])
     
     
@@ -92,8 +93,17 @@ class AccountInvoice(models.Model):
         
     
     @api.one    
-    def nfse_export(self):
-        self.write({'state': 'nfse_export'})
+    def nfse_issue(self):
+        self.write({'state': 'nfse_issuing'})
+        return True
+    @api.one   
+    def check_nfse_status(self):
+        #consult status of nfse and update
+        self.signal_workflow('invoice_open_nfse')
+        return True
+    
+    def nfse_cancel(self):
+        self.write({'state': 'nfse_cancelled'})
         return True
     
     #open : when nfse is issued
@@ -109,8 +119,13 @@ class AccountInvoice(models.Model):
     @api.multi
     def nfse_cancel(self):
         self.ensure_one()
-        #cancel nfse here
-        return self.button_cancel()
+        if self.type == 'out_invoice' and self.fiscal_document_electronic == True and self.state in ['open', 'invoice_issuing']:
+            self.write({'state' : 'nfse_cancelled'})
+            return True
+        else:
+            #cancel nfse here
+            return self.button_cancel()
+        
         
         
     def button_cancel(self, cr, uid, ids, context=None):
