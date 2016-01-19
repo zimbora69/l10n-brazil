@@ -37,7 +37,7 @@ nfse_issue()
         <record id="tras_draft_issuing" model="workflow.transition">
             <field name="act_from" ref="account.act_draft"/>
             <field name="act_to" ref="act_nfse_issuing"/>
-            <field name="condition">fiscal_type == 'service' and type == 'out_invoice'</field>
+            <field name="condition">fiscal_type == 'service' and type == 'out_invoice' and fiscal_document_electronic == True</field>
             <field name="signal">invoice_issue_nfse</field>
         </record>
         
@@ -51,8 +51,8 @@ nfse_issue()
         <record id="tras_draft_open" model="workflow.transition">
              <field name="act_from" ref="account.act_draft"/>
               <field name="act_to" ref="account.act_open"/>
-              <field name="condition">type == 'in_invoice' or fiscal_document_electronic == False</field>
-              <field name="signal">invoice_open</field>
+              <field name="condition">fiscal_type != 'service' or fiscal_document_electronic == False or type == 'in_invoice' </field>
+              <field name="signal">invoice_issue_nfse</field>
         </record>
         
         <record id="tras_issuing_denied" model="workflow.transition">
