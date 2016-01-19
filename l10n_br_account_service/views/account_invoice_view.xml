@@ -8,7 +8,7 @@
  			<field name="inherit_id" ref="account_cancel.invoice_form_cancel_inherit"/>
  			<field name="arch" type="xml">
  				<button name="invoice_cancel" position="replace">
- 					<button name="invoice_cancel" string="Cancel Invoice" groups="account.group_account_invoice"/>
+ 					<button name="invoice_cancel" attrs="{'invisible':[('state','in',['paid','cancel'])]}" string="Cancel Invoice" groups="account.group_account_invoice"/>
  				</button>
  			</field>
  		</record>
