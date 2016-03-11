@@ -171,3 +171,20 @@ class AccountInvoiceLine(models.Model):
             result['arch'] = etree.tostring(eview)
 
         return result
+    
+    # set type_tax_use so that It can get taxes from company
+    @api.multi
+    def product_id_change(self, product, uom_id, qty=0, name='',
+                          type='out_invoice', partner_id=False,
+                          fposition_id=False, price_unit=False,
+                          currency_id=False, company_id=None):
+        ctx = dict(self.env.context)
+        if type in ('out_invoice', 'out_refund'):
+            ctx.update({'type_tax_use': 'sale'})
+        else:
+            ctx.update({'type_tax_use': 'purchase'})
+        self = self.with_context(ctx)
+        result = super(AccountInvoiceLine, self).product_id_change(
+            product, uom_id, qty, name, type, partner_id,
+            fposition_id, price_unit, currency_id, company_id)
+        return result
