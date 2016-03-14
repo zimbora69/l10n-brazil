@@ -67,6 +67,16 @@ class AccountInvoice(models.Model):
     def _default_fiscal_document_serie(self):
         company = self.env['res.company'].browse(self.env.user.company_id.id)
         return company.document_serie_service_id
+    
+    #compute amount to consider withholdings
+    # this method will correct value of total and liquid
+    @api.one
+    @api.depends('invoice_line.price_subtotal', 'tax_line.amount')
+    def _compute_amount(self):
+        self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line)
+        self.amount_tax = sum(line.amount for line in self.tax_line)
+        self.amount_total = self.amount_untaxed + self.amount_tax + self.amount_tax_withholding
+        self.amount_total_liquid = self.amount_total - self.amount_tax_withholding
 
     issuer = fields.Selection(
         [('0', u'Emissão própria'), ('1', 'Terceiros')], 'Emitente',
@@ -125,20 +135,36 @@ class AccountInvoice(models.Model):
         self.amount_tax_withholding = total_withholding 
         self.amount_total_liquid =  self.amount_total - self.amount_tax_withholding
     
+    #this method will reset taxes lines and withholding lines
+    #we do not call super because super also will create tax lines
     @api.multi
     def button_reset_taxes(self):
+        account_invoice_tax = self.env['account.invoice.tax']
         account_withholding_tax = self.env['withholding.tax.line']
         ctx = dict(self._context)
         for invoice in self:
             self._cr.execute("DELETE FROM withholding_tax_line WHERE invoice_id=%s AND manual is False", (invoice.id,))
+            self._cr.execute("DELETE FROM account_invoice_tax WHERE invoice_id=%s AND manual is False", (invoice.id,))
             self.invalidate_cache()
             partner = invoice.partner_id
             if partner.lang:
                 ctx['lang'] = partner.lang
-            for taxe in account_withholding_tax.compute_withholding(invoice.with_context(ctx)).values():
+            #get tax lines
+            invoice_taxes = account_invoice_tax.compute(invoice.with_context(ctx))
+            #get withholding lines
+            withholding_taxes = account_withholding_tax.compute_withholding(invoice.with_context(ctx))
+            # correct amount in tax line by subtracting withholding amount of line
+            for w_key in withholding_taxes.keys():
+                if w_key in invoice_taxes.keys():
+                    invoice_taxes[w_key]['amount'] = invoice_taxes[w_key]['amount'] - withholding_taxes[w_key]['amount']
+            print invoice_taxes
+            for taxe in invoice_taxes.values():
+                account_invoice_tax.create(taxe)
+            for taxe in withholding_taxes.values():
                 account_withholding_tax.create(taxe)
-        # dummy write on self to trigger recomputations
-        return super(AccountInvoice,self).button_reset_taxes()
+        # dummy write on self to trigger re computations
+        #not calling super otherwise it will overwrite functionality 
+        return self.with_context(ctx).write({'invoice_line': []})
     
     @api.multi
     def check_tax_lines(self, compute_taxes):
