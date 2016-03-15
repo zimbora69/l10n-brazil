@@ -122,7 +122,7 @@ class AccountInvoice(models.Model):
     fiscal_comment = fields.Text(u'Observação Fiscal')
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
     amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
-    withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines')
+    withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
 
     _order = 'internal_number desc'
     
