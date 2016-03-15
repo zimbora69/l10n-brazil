@@ -414,7 +414,7 @@ class AccountInvoiceLine(models.Model):
             price, self.quantity, product=self.product_id,
             partner=self.invoice_id.partner_id)
         #subtract withholings to compute price subtotal
-        self.price_subtotal = taxes['total'] - taxes['total_tax_discount'] - withholdings.get('total_withholdings',0.0)
+        self.price_subtotal = taxes['total'] - taxes['total_tax_discount'] 
         self.price_total = taxes['total']
         if self.invoice_id:
             self.price_subtotal = self.invoice_id.currency_id.round(
