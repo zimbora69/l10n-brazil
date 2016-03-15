@@ -135,6 +135,7 @@ class AccountInvoice(models.Model):
         self.amount_tax_withholding = total_withholding 
         self.amount_total_liquid =  self.amount_total - self.amount_tax_withholding
     
+    
     #this method will reset taxes lines and withholding lines
     #we do not call super because super also will create tax lines
     @api.multi
@@ -157,9 +158,10 @@ class AccountInvoice(models.Model):
             for w_key in withholding_taxes.keys():
                 if w_key in invoice_taxes.keys():
                     invoice_taxes[w_key]['amount'] = invoice_taxes[w_key]['amount'] - withholding_taxes[w_key]['amount']
-            print invoice_taxes
+            # create tax lines
             for taxe in invoice_taxes.values():
                 account_invoice_tax.create(taxe)
+            # crate withholding lines
             for taxe in withholding_taxes.values():
                 account_withholding_tax.create(taxe)
         # dummy write on self to trigger re computations
@@ -303,6 +305,15 @@ class AccountInvoice(models.Model):
                     {'internal_number': seq_number, 'number': seq_number})
         return True
 
+    @api.multi
+    def compute_invoice_totals(self, company_currency, ref, invoice_move_lines):
+        total, total_currency, invoice_move_lines = super(AccountInvoice,self).compute_invoice_totals(company_currency, ref, invoice_move_lines)
+        currency = self.currency_id.with_context(date=self.date_invoice or fields.Date.context_today(self))
+        total = currency.compute(self.amount_total_liquid, company_currency)
+        total_currency = total
+        return total, total_currency, invoice_move_lines
+    
+    
     # TODO Talvez este metodo substitui o metodo action_move_create
     @api.multi
     def finalize_invoice_move_lines(self, move_lines):
@@ -327,6 +338,10 @@ class AccountInvoice(models.Model):
                         (self.internal_number, count)
                     count += 1
                 result.append(move_line)
+        # set tax_code_id False in invoice lines
+        for move_line in move_lines:
+            if move_line[2].get('product_id'):
+                move_line[2].update({'tax_code_id': False}) 
         return result
 
     def _fiscal_position_map(self, result, **kwargs):
@@ -374,7 +389,15 @@ class AccountInvoiceLine(models.Model):
     #set price_total in move line instead of subtotal
     def move_line_get_item(self, line):
         result = super(AccountInvoiceLine,self).move_line_get_item(line)
-        result['price'] = line.price_total
+        price = line.price_unit * (1 - (self.discount or 0.0) / 100.0)
+        taxes = line.invoice_line_tax_id.compute_all_withholding(price, line.quantity, product=line.product_id, partner=line.invoice_id.partner_id)['taxes']
+        withholding_amt = 0.0
+        for tax in taxes :
+            withholding_amt = withholding_amt + tax['amount']
+        result['price'] = line.price_total - withholding_amt
+        #set True product 
+        # we use this to remove tax_code_id from move line
+        result['product'] = True
         return result
 
     @api.one
@@ -387,7 +410,11 @@ class AccountInvoiceLine(models.Model):
             price, self.quantity, product=self.product_id,
             partner=self.invoice_id.partner_id,
             fiscal_position=self.fiscal_position)
-        self.price_subtotal = taxes['total'] - taxes['total_tax_discount']
+        withholdings = self.invoice_line_tax_id.compute_all_withholding(
+            price, self.quantity, product=self.product_id,
+            partner=self.invoice_id.partner_id)
+        #subtract withholings to compute price subtotal
+        self.price_subtotal = taxes['total'] - taxes['total_tax_discount'] - withholdings.get('total_withholdings',0.0)
         self.price_total = taxes['total']
         if self.invoice_id:
             self.price_subtotal = self.invoice_id.currency_id.round(

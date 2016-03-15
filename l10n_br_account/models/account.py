@@ -166,6 +166,8 @@ class AccountTax(models.Model):
             fiscal_position=fiscal_position, insurance_value=insurance_value,
             freight_value=freight_value, other_costs_value=other_costs_value)
    
+    
+    # compute line withholdings   
     @api.v8
     def compute_all_withholding(self, price_unit, quantity, product=None, partner=None, force_excluded=False):
         return self._model.compute_all_withholding(
@@ -215,11 +217,12 @@ class AccountTax(models.Model):
         except:
             pass
         tex = self._compute_withholding(cr, uid, tex, totlex_qty, quantity, product=product, partner=partner, precision=tax_compute_precision)
+        totalin = 0.0
         for r in tex:
             totalin += r.get('amount', 0.0)
         return {
             'total': totalex,
-            'total_included': totalin,
+            'total_withholdings': totalin,
             'taxes': tin + tex
         }
 
