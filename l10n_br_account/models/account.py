@@ -145,6 +145,7 @@ class AccountTax(models.Model):
         result_tax = self._compute_tax(
             cr, uid, common_taxes, result['total'],
             product, quantity, precision)
+        print "result tax................",result_tax
         totaldc += result_tax['tax_discount']
         calculed_taxes += result_tax['taxes']
 

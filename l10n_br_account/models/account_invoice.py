@@ -410,11 +410,10 @@ class AccountInvoiceLine(models.Model):
             price, self.quantity, product=self.product_id,
             partner=self.invoice_id.partner_id,
             fiscal_position=self.fiscal_position)
-        withholdings = self.invoice_line_tax_id.compute_all_withholding(
-            price, self.quantity, product=self.product_id,
-            partner=self.invoice_id.partner_id)
         #subtract withholings to compute price subtotal
-        self.price_subtotal = taxes['total'] - taxes['total_tax_discount'] 
+        #self.price_subtotal = taxes['total'] - taxes['total_tax_discount']
+        # get line subtotal without taxes
+        self.price_subtotal = taxes['total'] - (taxes['total_included'] - taxes['total']) 
         self.price_total = taxes['total']
         if self.invoice_id:
             self.price_subtotal = self.invoice_id.currency_id.round(
