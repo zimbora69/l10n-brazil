@@ -127,7 +127,7 @@ class AccountInvoice(models.Model):
     _order = 'internal_number desc'
     
     @api.one
-    @api.depends('invoice_line.price_subtotal', 'withholding_tax_lines.amount')
+    @api.depends('invoice_line.price_subtotal', 'withholding_tax_lines.amount','withholding_tax_lines','amount_tax')
     def get_amount_tax_withholding(self):
         total_withholding = 0.0
         for line in self.withholding_tax_lines:
