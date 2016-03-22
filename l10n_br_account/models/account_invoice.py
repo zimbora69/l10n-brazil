@@ -67,6 +67,16 @@ class AccountInvoice(models.Model):
     def _default_fiscal_document_serie(self):
         company = self.env['res.company'].browse(self.env.user.company_id.id)
         return company.document_serie_service_id
+    
+    #compute amount to consider withholdings
+    # this method will correct value of total and liquid
+    @api.one
+    @api.depends('invoice_line.price_subtotal', 'tax_line.amount')
+    def _compute_amount(self):
+        self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line)
+        self.amount_tax = sum(line.amount for line in self.tax_line)
+        self.amount_total = self.amount_untaxed + self.amount_tax + self.amount_tax_withholding
+        self.amount_total_liquid = self.amount_total - self.amount_tax_withholding
 
     issuer = fields.Selection(
         [('0', u'Emissão própria'), ('1', 'Terceiros')], 'Emitente',
@@ -110,8 +120,63 @@ class AccountInvoice(models.Model):
         'l10n_br_account.document_event', 'document_event_ids',
         u'Eventos')
     fiscal_comment = fields.Text(u'Observação Fiscal')
+    amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
+    amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
+    withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
 
     _order = 'internal_number desc'
+    
+    @api.one
+    @api.depends('invoice_line.price_subtotal', 'withholding_tax_lines.amount','withholding_tax_lines','amount_tax')
+    def get_amount_tax_withholding(self):
+        total_withholding = 0.0
+        for line in self.withholding_tax_lines:
+            total_withholding += line.amount
+        self.amount_tax_withholding = total_withholding 
+        self.amount_total_liquid =  self.amount_total - self.amount_tax_withholding
+    
+    
+    #this method will reset taxes lines and withholding lines
+    #we do not call super because super also will create tax lines
+    @api.multi
+    def button_reset_taxes(self):
+        account_invoice_tax = self.env['account.invoice.tax']
+        account_withholding_tax = self.env['withholding.tax.line']
+        ctx = dict(self._context)
+        for invoice in self:
+            self._cr.execute("DELETE FROM withholding_tax_line WHERE invoice_id=%s AND manual is False", (invoice.id,))
+            self._cr.execute("DELETE FROM account_invoice_tax WHERE invoice_id=%s AND manual is False", (invoice.id,))
+            self.invalidate_cache()
+            partner = invoice.partner_id
+            if partner.lang:
+                ctx['lang'] = partner.lang
+            #get tax lines
+            invoice_taxes = account_invoice_tax.compute(invoice.with_context(ctx))
+            #get withholding lines
+            withholding_taxes = account_withholding_tax.compute_withholding(invoice.with_context(ctx))
+            # correct amount in tax line by subtracting withholding amount of line
+            for w_key in withholding_taxes.keys():
+                if w_key in invoice_taxes.keys():
+                    invoice_taxes[w_key]['amount'] = invoice_taxes[w_key]['amount'] - withholding_taxes[w_key]['amount']
+            # create tax lines
+            for taxe in invoice_taxes.values():
+                account_invoice_tax.create(taxe)
+            # crate withholding lines
+            for taxe in withholding_taxes.values():
+                account_withholding_tax.create(taxe)
+        # dummy write on self to trigger re computations
+        #not calling super otherwise it will overwrite functionality 
+        return self.with_context(ctx).write({'invoice_line': []})
+    
+    @api.multi
+    def check_tax_lines(self, compute_taxes):
+        super(AccountInvoice,self).check_tax_lines(compute_taxes)
+        account_withholding_tax = self.env['withholding.tax.line']
+        company_currency = self.company_id.currency_id
+        if not self.withholding_tax_lines:
+            compute_taxes = account_withholding_tax.compute_withholding(self.with_context(lang=self.partner_id.lang))
+            for tax in compute_taxes.values():
+                account_withholding_tax.create(tax)
 
     @api.one
     @api.constrains('number')
@@ -240,6 +305,15 @@ class AccountInvoice(models.Model):
                     {'internal_number': seq_number, 'number': seq_number})
         return True
 
+    @api.multi
+    def compute_invoice_totals(self, company_currency, ref, invoice_move_lines):
+        total, total_currency, invoice_move_lines = super(AccountInvoice,self).compute_invoice_totals(company_currency, ref, invoice_move_lines)
+        currency = self.currency_id.with_context(date=self.date_invoice or fields.Date.context_today(self))
+        total = currency.compute(self.amount_total_liquid, company_currency)
+        total_currency = total
+        return total, total_currency, invoice_move_lines
+    
+    
     # TODO Talvez este metodo substitui o metodo action_move_create
     @api.multi
     def finalize_invoice_move_lines(self, move_lines):
@@ -264,6 +338,10 @@ class AccountInvoice(models.Model):
                         (self.internal_number, count)
                     count += 1
                 result.append(move_line)
+        # set tax_code_id False in invoice lines
+        for move_line in move_lines:
+            if move_line[2].get('product_id'):
+                move_line[2].update({'tax_code_id': False}) 
         return result
 
     def _fiscal_position_map(self, result, **kwargs):
@@ -306,6 +384,21 @@ class AccountInvoice(models.Model):
 
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
+    
+    @api.model
+    #set price_total in move line instead of subtotal
+    def move_line_get_item(self, line):
+        result = super(AccountInvoiceLine,self).move_line_get_item(line)
+        price = line.price_unit * (1 - (self.discount or 0.0) / 100.0)
+        taxes = line.invoice_line_tax_id.compute_all_withholding(price, line.quantity, product=line.product_id, partner=line.invoice_id.partner_id)['taxes']
+        withholding_amt = 0.0
+        for tax in taxes :
+            withholding_amt = withholding_amt + tax['amount']
+        result['price'] = line.price_total - withholding_amt
+        #set True product 
+        # we use this to remove tax_code_id from move line
+        result['product'] = True
+        return result
 
     @api.one
     @api.depends('price_unit', 'discount', 'invoice_line_tax_id',
@@ -317,7 +410,10 @@ class AccountInvoiceLine(models.Model):
             price, self.quantity, product=self.product_id,
             partner=self.invoice_id.partner_id,
             fiscal_position=self.fiscal_position)
-        self.price_subtotal = taxes['total'] - taxes['total_tax_discount']
+        #subtract withholings to compute price subtotal
+        #self.price_subtotal = taxes['total'] - taxes['total_tax_discount']
+        # get line subtotal without taxes
+        self.price_subtotal = taxes['total'] - (taxes['total_included'] - taxes['total']) 
         self.price_total = taxes['total']
         if self.invoice_id:
             self.price_subtotal = self.invoice_id.currency_id.round(
