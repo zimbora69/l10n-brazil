@@ -22,6 +22,7 @@ import datetime
 
 from openerp import models, fields, api, _
 from openerp.exceptions import Warning as UserError
+from openerp.exceptions import Warning
 
 TYPE = [
     ('input', u'Entrada'),
@@ -502,7 +503,9 @@ class AccountInvoiceTax(models.Model):
             (invoice_id,)
         )
         for row in self._cr.dictfetchall():
-            if row['amount'] and row['tax_code_id'] and row['tax_amount'] and row['deduction_account_id']:
+            if row['amount'] and not row['deduction_account_id']:
+                raise Warning("Please define Tax Account for Deduction for tax %s"%row['name'])
+            if row['amount'] and row['tax_amount'] and row['deduction_account_id']:
                 res.append({
                     'type': 'tax',
                     'name': row['name'],

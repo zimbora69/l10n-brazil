@@ -38,7 +38,7 @@ class AccountTaxTemplate(models.Model):
         [('0', 'Margem Valor Agregado (%)'), ('1', 'Pauta (valor)'),
          ('2', 'Preço Tabelado Máximo (valor)'),
          ('3', 'Valor da Operação')],
-        'Tipo Base ICMS', required=True, default='0')
+        'Tipo Base ICMS', required=False, default='0')
     icms_st_base_type = fields.Selection(
         [('0', 'Preço tabelado ou máximo  sugerido'),
          ('1', 'Lista Negativa (valor)'),
@@ -55,7 +55,7 @@ class AccountTax(models.Model):
         [('0', 'Margem Valor Agregado (%)'), ('1', 'Pauta (valor)'),
          ('2', 'Preço Tabelado Máximo (valor)'),
          ('3', 'Valor da Operação')],
-        'Tipo Base ICMS', required=True, default='0')
+        'Tipo Base ICMS', required=False, default='0')
     icms_st_base_type = fields.Selection(
         [('0', 'Preço tabelado ou máximo  sugerido'),
          ('1', 'Lista Negativa (valor)'),
