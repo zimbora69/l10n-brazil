@@ -37,6 +37,10 @@ class AccountFiscalPositionTaxTemplate(models.Model):
 
     fiscal_classification_id = fields.Many2one(
         'account.product.fiscal.classification.template', 'NCM')
+    tax_ipi_guideline_id = fields.Many2one(
+        'l10n_br_account_product.ipi_guideline', string=u'Enquadramento IPI')
+    tax_icms_relief_id = fields.Many2one(
+        'l10n_br_account_product.icms_relief', string=u'Desoneração ICMS')
 
 
 class AccountFiscalPosition(models.Model):
@@ -97,6 +101,8 @@ class AccountFiscalPosition(models.Model):
             result[map.tax_dest_id.domain] = {
                 'tax': map.tax_dest_id,
                 'tax_code': map.tax_code_dest_id,
+                'icms_relief': map.tax_icms_relief_id,
+                'ipi_guideline':  map.tax_ipi_guideline_id,
             }
         return result
 
@@ -115,6 +121,8 @@ class AccountFiscalPosition(models.Model):
                         result[tax_def.tax_id.domain] = {
                             'tax': tax_def.tax_id,
                             'tax_code': tax_def.tax_code_id,
+                            'icms_relief': ncm_tax_def.tax_icms_relief_id,
+                            'ipi_guideline':  ncm_tax_def.tax_ipi_guideline_id,
                         }
 
             # FIXME se tiver com o admin pegar impostos de outras empresas
@@ -169,6 +177,14 @@ class AccountFiscalPosition(models.Model):
         for tax in taxes_codes:
             if taxes_codes[tax].get('tax'):
                 result |= taxes_codes[tax].get('tax')
+            if taxes_codes[code].get('ipi_guideline'):
+                result.update({
+                    'ipi_guideline': taxes_codes[code].get('ipi_guideline').id
+                })
+            if taxes_codes[code].get('icms_relief'):
+                result.update({
+                    'icms_relief': taxes_codes[code].get('icms_relief').id
+                })
         return result
 
 
@@ -177,3 +193,7 @@ class AccountFiscalPositionTax(models.Model):
 
     fiscal_classification_id = fields.Many2one(
         'account.product.fiscal.classification', 'NCM')
+    tax_ipi_guideline_id = fields.Many2one(
+        'l10n_br_account_product.ipi_guideline', string=u'Enquadramento IPI')
+    tax_icms_relief_id = fields.Many2one(
+        'l10n_br_account_product.icms_relief', string=u'Desoneração ICMS')

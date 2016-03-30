@@ -531,6 +531,9 @@ class AccountInvoiceLine(models.Model):
     cfop_id = fields.Many2one('l10n_br_account_product.cfop', 'CFOP')
     fiscal_classification_id = fields.Many2one(
         'account.product.fiscal.classification', 'Classificação Fiscal')
+    cest = fields.Char(
+         string="CEST",
+         related='fiscal_classification_id.cest')
     fci = fields.Char('FCI do Produto', size=36)
     import_declaration_ids = fields.One2many(
         'l10n_br_account_product.import.declaration',
@@ -562,7 +565,7 @@ class AccountInvoiceLine(models.Model):
         [('0', 'Margem Valor Agregado (%)'), ('1', 'Pauta (valor)'),
          ('2', 'Preço Tabelado Máximo (valor)'),
          ('3', 'Valor da Operação')],
-        'Tipo Base ICMS', required=True, default='0')
+        'Tipo Base ICMS', required=False, default='0')
     icms_base = fields.Float('Base ICMS', required=True,
                              digits=dp.get_precision('Account'), default=0.00)
     icms_base_other = fields.Float(
@@ -602,6 +605,9 @@ class AccountInvoiceLine(models.Model):
     icms_cst_id = fields.Many2one(
         'account.tax.code', 'CST ICMS', domain=[('domain', '=', 'icms')])
     issqn_manual = fields.Boolean('ISSQN Manual?', default=False)
+    icms_relief_id = fields.Many2one(
+         'l10n_br_account_product.icms_relief',
+         string=u'Desoneração ICMS')
     issqn_type = fields.Selection(
         [('N', 'Normal'), ('R', 'Retida'),
          ('S', 'Substituta'), ('I', 'Isenta')], 'Tipo do ISSQN',
@@ -635,6 +641,9 @@ class AccountInvoiceLine(models.Model):
         default=0.00)
     ipi_cst_id = fields.Many2one(
         'account.tax.code', 'CST IPI', domain=[('domain', '=', 'ipi')])
+    ipi_guideline_id = fields.Many2one(
+         'l10n_br_account_product.ipi_guideline',
+         string=u'Enquadramento Legal IPI')
     pis_manual = fields.Boolean('PIS Manual?', default=False)
     pis_type = fields.Selection(
         [('percent', 'Percentual'), ('quantity', 'Em Valor')],
@@ -845,6 +854,8 @@ class AccountInvoiceLine(models.Model):
         result['ipi_cst_id'] = tax_codes.get('ipi')
         result['pis_cst_id'] = tax_codes.get('pis')
         result['cofins_cst_id'] = tax_codes.get('cofins')
+        result['icms_relief_id'] = tax_codes.get('icms_relief')
+        result['ipi_guideline_id'] = tax_codes.get('ipi_guideline')
         return result
 
     # TODO
