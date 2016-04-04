@@ -121,8 +121,8 @@ class AccountFiscalPosition(models.Model):
                         result[tax_def.tax_id.domain] = {
                             'tax': tax_def.tax_id,
                             'tax_code': tax_def.tax_code_id,
-                            'icms_relief': ncm_tax_def.tax_icms_relief_id,
-                            'ipi_guideline':  ncm_tax_def.tax_ipi_guideline_id,
+                            'icms_relief': tax_def.tax_icms_relief_id,
+                            'ipi_guideline':  tax_def.tax_ipi_guideline_id,
                         }
 
             # FIXME se tiver com o admin pegar impostos de outras empresas
