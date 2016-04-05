@@ -514,23 +514,24 @@ class AccountInvoiceTax(models.Model):
                     'tax_amount': False,
                     'account_analytic_id': row['account_analytic_id'],
                 })
-        #uncomment moves from withholing lines==============================================
-        if inv.type == 'out_invoice' and len(inv.withholding_tax_lines):
-            self._cr.execute(
-                'SELECT * FROM withholding_tax_line WHERE invoice_id = %s',
-                (invoice_id,)
-            )
-            for row in self._cr.dictfetchall():
-                if row['amount'] and row['tax_code_id'] and row['tax_amount'] and row['account_id']:
-                    res.append({
-                        'type': 'tax',
-                        'name': row['name'],
-                        'price_unit': row['amount'],
-                        'quantity': 1,
-                        'price': -row['amount'] or 0.0,
-                        'account_id': row['account_id'],
-                        'tax_code_id': False,
-                        'tax_amount': False,
-                        'account_analytic_id': row['account_analytic_id'],
-                    })
+        #================ comment moves from withholing lines =======================================================
+        # if inv.type == 'out_invoice' and len(inv.withholding_tax_lines):
+        #     self._cr.execute(
+        #         'SELECT * FROM withholding_tax_line WHERE invoice_id = %s',
+        #         (invoice_id,)
+        #     )
+        #     for row in self._cr.dictfetchall():
+        #         if row['amount'] and row['tax_code_id'] and row['tax_amount'] and row['account_id']:
+        #             res.append({
+        #                 'type': 'tax',
+        #                 'name': row['name'],
+        #                 'price_unit': row['amount'],
+        #                 'quantity': 1,
+        #                 'price': -row['amount'] or 0.0,
+        #                 'account_id': row['account_id'],
+        #                 'tax_code_id': False,
+        #                 'tax_amount': False,
+        #                 'account_analytic_id': row['account_analytic_id'],
+        #             })
+        #=======================================================================
         return res

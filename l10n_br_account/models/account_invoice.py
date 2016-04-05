@@ -311,6 +311,11 @@ class AccountInvoice(models.Model):
         currency = self.currency_id.with_context(date=self.date_invoice or fields.Date.context_today(self))
         total = currency.compute(self.amount_total_liquid, company_currency)
         total_currency = total
+        if self.type in ('out_invoice','in_refund'):
+            total_currency = total
+        else:
+            total_currency = total * -1
+            total =  total * -1
         return total, total_currency, invoice_move_lines
     
     
