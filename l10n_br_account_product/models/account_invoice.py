@@ -69,7 +69,7 @@ class AccountInvoice(models.Model):
             line.freight_value for line in self.invoice_line)
         self.amount_tax_discount = 0.0
         self.amount_untaxed = sum(
-            line.price_total for line in self.invoice_line)
+            line.price_subtotal for line in self.invoice_line)
         self.amount_tax = sum(tax.amount
                               for tax in self.tax_line
                               if not tax.tax_code_id.tax_discount)
@@ -519,6 +519,9 @@ class AccountInvoiceLine(models.Model):
                 self.price_unit * self.quantity)
             self.discount_value = self.invoice_id.currency_id.round(
                 self.price_gross - taxes['total'])
+            self.price_subtotal = taxes['total'] - (taxes['total_included'] - taxes['total'])
+            self.price_total = taxes['total']
+            
 
     date_invoice = fields.Datetime(
         'Invoice Date', readonly=True, states={'draft': [('readonly', False)]},
