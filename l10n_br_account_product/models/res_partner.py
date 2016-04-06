@@ -168,6 +168,14 @@ class AccountFiscalPosition(models.Model):
         for code in taxes_codes:
             if taxes_codes[code].get('tax_code'):
                 result.update({code: taxes_codes[code].get('tax_code').id})
+            if taxes_codes[code].get('ipi_guideline'):
+                result.update({
+                    'ipi_guideline': taxes_codes[code].get('ipi_guideline').id
+                })
+            if taxes_codes[code].get('icms_relief'):
+                result.update({
+                    'icms_relief': taxes_codes[code].get('icms_relief').id
+                })
         return result
 
     @api.v8
@@ -177,14 +185,6 @@ class AccountFiscalPosition(models.Model):
         for tax in taxes_codes:
             if taxes_codes[tax].get('tax'):
                 result |= taxes_codes[tax].get('tax')
-            if taxes_codes[code].get('ipi_guideline'):
-                result.update({
-                    'ipi_guideline': taxes_codes[code].get('ipi_guideline').id
-                })
-            if taxes_codes[code].get('icms_relief'):
-                result.update({
-                    'icms_relief': taxes_codes[code].get('icms_relief').id
-                })
         return result
 
 
