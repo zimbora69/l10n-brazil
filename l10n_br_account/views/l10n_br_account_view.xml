@@ -378,6 +378,7 @@
 						    <field name="name"/>
 						    <field name="internal_type"/>
 						    <field name="parent_id"/>
+						    <field name="issqn_percent"/>
 					    </group>
                     </sheet>
 				</form>
