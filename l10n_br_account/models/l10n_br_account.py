@@ -205,6 +205,8 @@ class L10n_brAccountServiceType(models.Model):
     internal_type = fields.Selection(
         [('view', u'Visualização'), ('normal', 'Normal')], 'Tipo Interno',
         required=True, default='normal')
+    issqn_percent = fields.Float('ISSQN Percent')
+    
 
     @api.multi
     def name_get(self):
