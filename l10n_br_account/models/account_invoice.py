@@ -119,7 +119,7 @@ class AccountInvoice(models.Model):
     account_document_event_ids = fields.One2many(
         'l10n_br_account.document_event', 'document_event_ids',
         u'Eventos')
-    fiscal_comment = fields.Text(u'Observação Fiscal')
+    fiscal_comment = fields.Text(u'Observação Fiscal',company_dependent=True)
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
     amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
     withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
