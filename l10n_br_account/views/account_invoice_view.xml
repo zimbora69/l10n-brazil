@@ -59,6 +59,16 @@
 					<field name="vendor_serie" attrs="{'invisible': [('issuer', '=', '0')], 'required': [('issuer', '=', '1')]}" />
 					<field name="issuer" attrs="{'invisible': [('type', '=', 'out_invoice')]}" />
 				</field>
+				<label for="comment" position="replace"/>
+				<field name="comment" position="replace"/>
+				<xpath expr="//field[@name='payment_term']" position="after">
+					<group colspan="4">
+						<label  for="fiscal_comment"/>
+						<field name="fiscal_comment" nolabel="1" placeholder="Observações Fiscais"/>
+						<label  for="comment"/>
+						<field name="comment" nolabel="1" placeholder="Additional notes..."/>
+					</group>
+				</xpath>
 				<xpath expr="//tree[@string='Invoice Lines']" position="attributes">
 					<attribute name="editable"></attribute>
 				</xpath>

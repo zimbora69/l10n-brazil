@@ -12,6 +12,18 @@
  				</button>
  			</field>
  		</record>
+ 		
+ 		<record model="ir.ui.view" id="view_l10n_br_account_invoice_service_form">
+ 			<field name="name">l10n_br_envio_account.invoice.form</field>
+ 			<field name="model">account.invoice</field>
+ 			<field name="inherit_id" ref="l10n_br_account.view_l10n_br_account_invoice_form"/>
+ 				<field name="arch" type="xml">
+ 					<field name="comment" position="after">
+ 						<label  for="nfse_description"/>
+						<field name="nfse_description" nolabel="1" placeholder="NFSe Description..."/>
+ 					</field>
+				</field>
+		</record> 		
 		<!-- Customer Invoice views -->
  		<record model="ir.ui.view" id="view_l10n_br_envio_account_invoice_form">
  			<field name="name">l10n_br_envio_account.invoice.form</field>

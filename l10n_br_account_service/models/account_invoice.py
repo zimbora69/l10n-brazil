@@ -85,6 +85,7 @@ class AccountInvoice(models.Model):
                          ('nfse_cancelled', u'Waiting for Cancellation'),
                          ('nfse_denied', u'Denegada na Prefeitura')])
     
+    nfse_description = fields.Text('NFS-e Description')
     
     @api.multi
     def nfse_check(self):
