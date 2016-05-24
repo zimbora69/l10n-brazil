@@ -34,7 +34,7 @@
  					<field name="fiscal_type"/>
  				</field>
  				<button name="invoice_open" position="replace">
- 					<button name="invoice_issue_nfse" attrs="{'invisible':['|',('state','!=','draft'),('fiscal_type','!=','service')]}"
+ 					<button name="invoice_open" attrs="{'invisible':['|',('state','!=','draft'),('fiscal_type','!=','service')]}"
  					 string="Validate nfse" class="oe_highlight"/>
  					<button name="check_nfse_status" type="object" attrs="{'invisible':['|',('state','!=','nfse_issuing'),('fiscal_type','!=','service')]}"
  					 string="Check Status" class="oe_highlight"/>
