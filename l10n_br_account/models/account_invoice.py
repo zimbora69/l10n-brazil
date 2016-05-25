@@ -68,6 +68,7 @@ class AccountInvoice(models.Model):
         company = self.env['res.company'].browse(self.env.user.company_id.id)
         return company.document_serie_service_id
     
+    
     #compute amount to consider withholdings
     # this method will correct value of total and liquid
     @api.one
@@ -119,12 +120,29 @@ class AccountInvoice(models.Model):
     account_document_event_ids = fields.One2many(
         'l10n_br_account.document_event', 'document_event_ids',
         u'Eventos')
-    fiscal_comment = fields.Text(u'Observação Fiscal',company_dependent=True)
+    fiscal_comment = fields.Text(u'Observação Fiscal')
     amount_tax_withholding = fields.Float(compute='get_amount_tax_withholding', string='Withholdings', digits=dp.get_precision('Account'), store=True)
     amount_total_liquid = fields.Float(compute='get_amount_tax_withholding', string='Liquid', digits=dp.get_precision('Account'), store=True)
     withholding_tax_lines = fields.One2many('withholding.tax.line','invoice_id','Withholding Lines',copy=True)
 
     _order = 'internal_number desc'
+    
+    
+    @api.multi
+    def onchange_company_id(self, company_id, part_id, type,
+                            invoice_line, currency_id):
+        result = super(AccountInvoice, self).onchange_company_id(
+            company_id, part_id, type, invoice_line,
+            currency_id)
+
+        if company_id:
+            
+            fiscal_comment = self.env['res.company'].browse(company_id).fiscal_comment
+            result['value'].update({'fiscal_comment' : fiscal_comment})
+        return result
+
+    
+    
     
     @api.one
     @api.depends('invoice_line.price_subtotal', 'withholding_tax_lines.amount','withholding_tax_lines','amount_tax')
