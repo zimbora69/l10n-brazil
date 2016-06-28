@@ -68,14 +68,13 @@ class AccountInvoice(models.Model):
         self.amount_freight = sum(
             line.freight_value for line in self.invoice_line)
         self.amount_tax_discount = 0.0
-        self.amount_untaxed = sum(
-            line.price_subtotal for line in self.invoice_line)
+        self.amount_untaxed = self.amount_gross - self.amount_discount
         self.amount_tax = sum(tax.amount
                               for tax in self.tax_line
                               if not tax.tax_code_id.tax_discount)
         self.amount_total = self.amount_tax + self.amount_untaxed + \
-            self.amount_costs + self.amount_insurance + self.amount_freight
-
+            self.amount_costs + self.amount_insurance + self.amount_freight + self.amount_tax_withholding
+        self.amount_total_liquid = self.amount_total - self.amount_tax_withholding
         for line in self.invoice_line:
             if line.icms_cst_id.code not in (
                     '101', '102', '201', '202', '300', '500'):
