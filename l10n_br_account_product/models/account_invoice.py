@@ -457,10 +457,8 @@ class AccountInvoice(models.Model):
         result = super(AccountInvoice, self).action_move_create()
         for invoice in self:
             date_time_now = fields.datetime.now()
-
             if not invoice.date_hour_invoice:
                 invoice.write({'date_hour_invoice': date_time_now})
-
             if not invoice.date_in_out:
                 invoice.write({'date_in_out': date_time_now})
         return result
@@ -1321,7 +1319,8 @@ class AccountInvoiceTax(models.Model):
                         'account_collected_id'] or line.account_id.id
                     val['account_analytic_id'] = tax[
                         'account_analytic_collected_id']
-                    val['deduction_account_id'] = tax.get('account_deduced_id',False)
+                    if self.env['account.tax.code'].browse(val['base_code_id']).tax_discount:
+                        val['deduction_account_id'] = tax.get('account_deduced_id',False)
                 else:
                     val['base_code_id'] = tax['ref_base_code_id']
                     val['tax_code_id'] = tax['ref_tax_code_id']
@@ -1335,7 +1334,8 @@ class AccountInvoiceTax(models.Model):
                         'account_paid_id'] or line.account_id.id
                     val['account_analytic_id'] = tax[
                         'account_analytic_paid_id']
-                    val['deduction_account_id'] = tax.get('account_paid_deduced_id',False)
+                    if self.env['account.tax.code'].browse(val['base_code_id']).tax_discount:
+                        val['deduction_account_id'] = tax.get('account_paid_deduced_id',False)
 
                 # If the taxes generate moves on the same financial account
                 # as the invoice line and no default analytic account is

@@ -506,7 +506,9 @@ class AccountInvoiceTax(models.Model):
         )
         for row in self._cr.dictfetchall():
             if row['amount'] and not row['deduction_account_id']:
-                raise Warning("Please define Tax Account for Deduction for tax %s"%row['name'])
+                if row['tax_code_id']:
+                    if self.env['account.tax.code'].browse(row['tax_code_id']).tax_discount:
+                        raise Warning("Please define Tax Account for Deduction for tax %s"%row['name'])
             if row['amount'] and row['tax_amount'] and row['deduction_account_id']:
                 res.append({
                     'type': 'tax',
