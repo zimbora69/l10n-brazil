@@ -72,9 +72,14 @@ class AccountInvoice(models.Model):
         self.amount_tax = sum(tax.amount
                               for tax in self.tax_line
                               if not tax.tax_code_id.tax_discount)
-        self.amount_total = self.amount_tax + self.amount_untaxed + \
-            self.amount_costs + self.amount_insurance + self.amount_freight + self.amount_tax_withholding
-        self.amount_total_liquid = self.amount_total - self.amount_tax_withholding
+        amount_tax_with_tax_discount= sum(tax.amount for tax in self.tax_line if tax.tax_code_id.tax_discount) \
+                       - sum(tax.amount for tax in self.withholding_tax_lines if tax.tax_code_id.tax_discount)
+        amount_tax_without_tax_discount = sum(tax.amount for tax in self.tax_line if not tax.tax_code_id.tax_discount) \
+                       - sum(tax.amount for tax in self.withholding_tax_lines if not tax.tax_code_id.tax_discount)
+                       
+        self.amount_total = self.amount_untaxed + \
+            self.amount_costs + self.amount_insurance + self.amount_freight + self.amount_tax_withholding + amount_tax_without_tax_discount
+        self.amount_total_liquid = self.amount_untaxed - amount_tax_with_tax_discount 
         for line in self.invoice_line:
             if line.icms_cst_id.code not in (
                     '101', '102', '201', '202', '300', '500'):
