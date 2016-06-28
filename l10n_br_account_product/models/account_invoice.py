@@ -274,6 +274,11 @@ class AccountInvoice(models.Model):
         store=True,
         digits=dp.get_precision('Account'),
         compute='_compute_amount')
+    amount_total_liquid = fields.Float(
+         string='Liquid',
+         store = True,
+         digits=dp.get_precision('Account'),
+         compute='_compute_amount')
     icms_base = fields.Float(
         string='Base ICMS',
         store=True,
