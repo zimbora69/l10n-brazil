@@ -398,6 +398,10 @@ class L10n_brAccountPartnerFiscalType(models.Model):
     icms = fields.Boolean('Recupera ICMS')
 
     ipi = fields.Boolean('Recupera IPI')
+    inscr_est_indicator = fields.Selection([('1', u'Contribuinte'),
+                                              ('2', u'Simples Nacional'),
+                                              ('9', u'Não Contribuinte')], 
+                                            default='9', string=u'Código Indicador de IE')
 
     @api.one
     @api.constrains('default')
