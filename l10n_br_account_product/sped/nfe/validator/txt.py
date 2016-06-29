@@ -52,6 +52,8 @@ def validate(cr, uid, ids, context=None):
                         u'a série deve ter uma sequencia interna\n')
 
         # Emitente
+        if not company.logo:
+            strErro += u'Company Logo\n'
         if not company.partner_id.legal_name:
             strErro += u'Emitente - Razão Social\n'
 
