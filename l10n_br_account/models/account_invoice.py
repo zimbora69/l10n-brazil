@@ -394,7 +394,6 @@ class AccountInvoice(models.Model):
             diff_currency = inv.currency_id != company_currency
             # create one move line for the total and possibly adjust the other lines amount
             total, total_currency, iml = inv.with_context(ctx).compute_invoice_totals(company_currency, ref, iml)
-
             name = inv.supplier_invoice_number or inv.name or '/'
             totlines = []
             if inv.payment_term:
