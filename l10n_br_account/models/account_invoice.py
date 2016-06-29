@@ -327,7 +327,7 @@ class AccountInvoice(models.Model):
     def compute_invoice_totals(self, company_currency, ref, invoice_move_lines):
         total, total_currency, invoice_move_lines = super(AccountInvoice,self).compute_invoice_totals(company_currency, ref, invoice_move_lines)
         currency = self.currency_id.with_context(date=self.date_invoice or fields.Date.context_today(self))
-        total = currency.compute(self.amount_total_liquid, company_currency)
+        total = currency.compute(self.amount_total, company_currency)
         total_currency = total
         if self.type in ('out_invoice','in_refund'):
             total_currency = total
@@ -394,6 +394,7 @@ class AccountInvoice(models.Model):
             diff_currency = inv.currency_id != company_currency
             # create one move line for the total and possibly adjust the other lines amount
             total, total_currency, iml = inv.with_context(ctx).compute_invoice_totals(company_currency, ref, iml)
+            
             name = inv.supplier_invoice_number or inv.name or '/'
             totlines = []
             if inv.payment_term:
