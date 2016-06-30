@@ -516,25 +516,25 @@ class NFe200(FiscalDocument):
 
         if invoice.carrier_id:
 
-            if invoice.carrier_id.partner_id.is_company:
+            if invoice.carrier_id.is_company:
                 self.nfe.infNFe.transp.transporta.CNPJ.valor = \
                     punctuation_rm(
-                        invoice.carrier_id.partner_id.cnpj_cpf or '')
+                        invoice.carrier_id.cnpj_cpf or '')
             else:
                 self.nfe.infNFe.transp.transporta.CPF.valor = \
                     punctuation_rm(
-                        invoice.carrier_id.partner_id.cnpj_cpf or '')
+                        invoice.carrier_id.cnpj_cpf or '')
 
             self.nfe.infNFe.transp.transporta.xNome.valor = (
-                invoice.carrier_id.partner_id.legal_name[:60] or '')
+                invoice.carrier_id.legal_name[:60] or '')
             self.nfe.infNFe.transp.transporta.IE.valor = punctuation_rm(
-                invoice.carrier_id.partner_id.inscr_est)
+                invoice.carrier_id.inscr_est)
             self.nfe.infNFe.transp.transporta.xEnder.valor = (
-                invoice.carrier_id.partner_id.street or '')
+                invoice.carrier_id.street or '')
             self.nfe.infNFe.transp.transporta.xMun.valor = (
-                invoice.carrier_id.partner_id.l10n_br_city_id.name or '')
+                invoice.carrier_id.l10n_br_city_id.name or '')
             self.nfe.infNFe.transp.transporta.UF.valor = (
-                invoice.carrier_id.partner_id.state_id.code or '')
+                invoice.carrier_id.state_id.code or '')
 
         if invoice.vehicle_id:
             self.nfe.infNFe.transp.veicTransp.placa.valor = (
