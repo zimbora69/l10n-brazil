@@ -701,8 +701,10 @@ class NFe310(NFe200):
         self.nfe.infNFe.ide.dhSaiEnt.valor = datetime.strptime(
             invoice.date_in_out, '%Y-%m-%d %H:%M:%S')
         self.aut_xml = self._get_AutXML()
-        self.aut_xml.CNPJ.valor = punctuation_rm(
-            invoice.company_id.accountant_cnpj_cpf)
+        # commented because of below error 
+        # Rejeição: CNPJ do destinatário já autorizado para download
+        # self.aut_xml.CNPJ.valor = punctuation_rm(
+        # invoice.company_id.accountant_cnpj_cpf)
         self.nfe.infNFe.autXML.append(self.aut_xml)
 
     def _receiver(self, invoice, company, nfe_environment):
