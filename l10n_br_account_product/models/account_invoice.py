@@ -320,12 +320,9 @@ class AccountInvoice(models.Model):
         string='Valor II', store=True,
         digits=dp.get_precision('Account'), compute='_compute_amount',
         readonly=True)
-    weight = fields.Float(
-        string='Gross weight', states={'draft': [('readonly', False)]},
-        help="The gross weight in Kg.", readonly=True)
-    weight_net = fields.Float(
-        'Net weight', help="The net weight in Kg.",
-        readonly=True, states={'draft': [('readonly', False)]})
+    additional_weight = fields.Float('Additional Weight', states={'draft': [('readonly', False)]})
+    weight = fields.Float(string=u'Gross weight', compute='_get_total_weight', store=True )
+    weight_net = fields.Float(string=u'Gross weight', compute='_get_total_weight', store=True )
     number_of_packages = fields.Integer(
         'Volume', readonly=True, states={'draft': [('readonly', False)]})
     kind_of_packages = fields.Char(
@@ -354,6 +351,16 @@ class AccountInvoice(models.Model):
         store=True,
         digits=dp.get_precision('Account'),
         compute='_compute_amount')
+    
+    @api.one
+    @api.depends('invoice_line.line_gross_weight','invoice_line.line_net_weight','additional_weight')
+    def _get_total_weight(self):
+        total_gross_weight = total_net_weight =0.0
+        for line in self.invoice_line:
+            total_gross_weight = line.line_gross_weight + total_gross_weight
+            total_net_weight = line.line_net_weight + total_net_weight
+        self.weight = total_gross_weight + self.additional_weight
+        self.weight_net = total_net_weight + self.additional_weight
 
     # TODO não foi migrado por causa do bug github.com/odoo/odoo/issues/1711
     def fields_view_get(self, cr, uid, view_id=None, view_type=False,
@@ -755,7 +762,17 @@ class AccountInvoiceLine(models.Model):
         'Outros Custos', digits=dp.get_precision('Account'), default=0.00)
     freight_value = fields.Float(
         'Frete', digits=dp.get_precision('Account'), default=0.00)
+    line_gross_weight = fields.Float(string='Weight', compute='_get_line_weight',
+        store=True)
+    line_net_weight = fields.Float(string='Weight', compute='_get_line_weight',
+         store=True)
     fiscal_comment = fields.Text(u'Observação Fiscal')
+    
+    @api.one
+    @api.depends('product_id.weight','quantity','uos_id')
+    def _get_line_weight(self):
+        self.line_gross_weight = self.quantity * self.uos_id.factor_inv * self.product_id.weight
+        self.line_net_weight = self.quantity * self.uos_id.factor_inv * self.product_id.weight_net
 
     def _amount_tax_icms(self, tax=None):
         result = {
