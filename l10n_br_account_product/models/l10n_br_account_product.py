@@ -84,7 +84,7 @@ class L10nbrAccountCFOP(models.Model):
                  (x['name'] and ' - ' + x['name'] or '')) for x in reads]
 
 
-class L10n_brAccountServiceType(models.Model):
+class L10nBrAccountServiceType(models.Model):
     _name = 'l10n_br_account.service.type'
     _description = u'Cadastro de Operações Fiscais de Serviço'
 
@@ -150,8 +150,8 @@ class L10nbrAccountDocumentRelated(models.Model):
             elif not fiscal.validate_cpf(self.cnpj_cpf):
                 check_cnpj_cpf = False
         if not check_cnpj_cpf:
-            raise UserError(_(u'CNPJ/CPF do documento relacionado'
-                              u' é invalido!'))
+            raise UserError(
+                _(u'CNPJ/CPF do documento relacionado é invalido!'))
 
     @api.one
     @api.constrains('inscr_est')
@@ -331,7 +331,7 @@ class ImportDeclarationLine(models.Model):
     sequence = fields.Integer(u'Sequência', default=1, required=True)
     name = fields.Char(u'Adição', size=3, required=True)
     manufacturer_code = fields.Char(
-        u'Código do Fabricante', size=3, required=True)
+        u'Código do Fabricante', size=60, required=True)
     amount_discount = fields.Float(u'Valor',
                                    digits=dp.get_precision('Account'),
                                    default=0.00)

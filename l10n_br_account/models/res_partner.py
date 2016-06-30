@@ -150,23 +150,22 @@ class AccountFiscalPositionTaxTemplate(models.Model):
     tax_code_dest_id = fields.Many2one(
         'account.tax.code.template', string='Replacement Tax Code')
 
-    def _tax_domain(self, tax_src_id=None, tax_code_src_id=None):
-
-        tax_domain = None
+    @staticmethod
+    def _tax_domain(tax_src_id, tax_code_src_id):
+        tax_domain = False
         if tax_src_id:
-            tax_domain = self.env['account.tax'].browse(tax_src_id).domain
+            tax_domain = tax_src_id.domain
         if tax_code_src_id:
-            tax_domain = self.env['account.tax'].browse(
-                tax_code_src_id).domain
-        return {'value': {'tax_src_domain': tax_domain}}
+            tax_domain = tax_code_src_id.domain
+        return tax_domain
 
-    @api.one
-    def onchange_tax_src_id(self, tax_src_id, tax_code_src_id):
-        return self._tax_domain(tax_src_id, tax_code_src_id)
-
-    @api.one
-    def onchange_tax_code_src_id(self, tax_src_id, tax_code_src_id,):
-        return self._tax_domain(tax_src_id, tax_code_src_id)
+    @api.onchange('tax_src_id', 'tax_code_src_id')
+    def onchange_tax_src_id(self):
+        if self.tax_code_src_id or self.tax_src_id:
+            self.tax_src_domain = self._tax_domain(
+                self.tax_src_id,
+                self.tax_code_src_id
+            )
 
 
 class AccountFiscalPosition(models.Model):
@@ -290,23 +289,22 @@ class AccountFiscalPositionTax(models.Model):
     tax_code_dest_id = fields.Many2one(
         'account.tax.code', 'Replacement Tax Code')
 
-    def _tax_domain(self, tax_src_id=None, tax_code_src_id=None):
-
-        tax_domain = None
+    @staticmethod
+    def _tax_domain(tax_src_id, tax_code_src_id):
+        tax_domain = False
         if tax_src_id:
-            tax_domain = self.env['account.tax'].browse(tax_src_id).domain
+            tax_domain = tax_src_id.domain
         if tax_code_src_id:
-            tax_domain = self.env['account.tax'].browse(
-                tax_code_src_id).domain
-        return {'value': {'tax_src_domain': tax_domain}}
+            tax_domain = tax_code_src_id.domain
+        return tax_domain
 
-    @api.one
-    def onchange_tax_src_id(self, tax_src_id, tax_code_src_id):
-        return self._tax_domain(tax_src_id, tax_code_src_id)
-
-    @api.one
-    def onchange_tax_code_src_id(self, tax_src_id, tax_code_src_id,):
-        return self._tax_domain(tax_src_id, tax_code_src_id)
+    @api.onchange('tax_src_id', 'tax_code_src_id')
+    def onchange_tax_src_id(self):
+        if self.tax_code_src_id or self.tax_src_id:
+            self.tax_src_domain = self._tax_domain(
+                self.tax_src_id,
+                self.tax_code_src_id
+            )
 
 
 class ResPartner(models.Model):
@@ -318,7 +316,8 @@ class ResPartner(models.Model):
         o tipo fiscal para não contribuinte já que quando é criado um novo
         parceiro o valor do campo is_company é false"""
         ft_ids = self.env['l10n_br_account.partner.fiscal.type'].search(
-            [('default', '=', 'True'), ('is_company', '=', is_company)])
+            [('default', '=', 'True'), ('is_company', '=', is_company)],
+            limit=1)
         return ft_ids
 
     partner_fiscal_type_id = fields.Many2one(
@@ -326,11 +325,13 @@ class ResPartner(models.Model):
         domain="[('is_company', '=', is_company)]",
         default=_default_partner_fiscal_type_id)
 
-    @api.multi
-    def onchange_mask_cnpj_cpf(self, is_company, cnpj_cpf):
-        result = super(ResPartner, self).onchange_mask_cnpj_cpf(
-            is_company, cnpj_cpf)
-        ft_id = self._default_partner_fiscal_type_id(is_company)
-        if ft_id:
-            result['value']['partner_fiscal_type_id'] = ft_id
-        return result
+    partner_special_fiscal_type_id = fields.Many2many(
+        comodel_name='l10n_br_account.partner.special.fiscal.type',
+        relation='res_partner_l10n_br_special_type',
+        string='Regime especial'
+    )
+
+    @api.onchange('is_company')
+    def _onchange_is_company(self):
+        self.partner_fiscal_type_id = \
+            self._default_partner_fiscal_type_id(self.is_company)

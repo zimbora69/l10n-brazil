@@ -62,19 +62,18 @@ class AccountInvoice(models.Model):
             line.insurance_value for line in self.invoice_line)
         self.amount_costs = sum(
             line.other_costs_value for line in self.invoice_line)
+        self.amount_freight = sum(
+            line.freight_value for line in self.invoice_line)
         self.amount_total_taxes = sum(
             line.total_taxes for line in self.invoice_line)
         self.amount_gross = sum(line.price_gross for line in self.invoice_line)
-        self.amount_freight = sum(
-            line.freight_value for line in self.invoice_line)
         self.amount_tax_discount = 0.0
         self.amount_untaxed = sum(
             line.price_total for line in self.invoice_line)
         self.amount_tax = sum(tax.amount
                               for tax in self.tax_line
                               if not tax.tax_code_id.tax_discount)
-        self.amount_total = self.amount_tax + self.amount_untaxed + \
-            self.amount_costs + self.amount_insurance + self.amount_freight
+        self.amount_total = self.amount_tax + self.amount_untaxed
 
         for line in self.invoice_line:
             if line.icms_cst_id.code not in (
@@ -212,6 +211,7 @@ class AccountInvoice(models.Model):
     shipping_state_id = fields.Many2one(
         'res.country.state', 'Estado de Embarque')
     shipping_location = fields.Char('Local de Embarque', size=32)
+    expedition_location = fields.Char('Local de Despacho', size=32)
     nfe_purpose = fields.Selection(
         [('1', 'Normal'),
          ('2', 'Complementar'),
@@ -344,7 +344,7 @@ class AccountInvoice(models.Model):
         string='Valor do Seguro', store=True,
         digits=dp.get_precision('Account'), compute='_compute_amount')
     amount_freight = fields.Float(
-        string='Valor do Seguro', store=True,
+        string='Valor do Frete', store=True,
         digits=dp.get_precision('Account'), compute='_compute_amount')
     amount_costs = fields.Float(
         string='Outros Custos', store=True,
@@ -488,6 +488,49 @@ class AccountInvoice(models.Model):
                 invoice.write(result['value'])
         return True
 
+    @api.multi
+    def button_reset_taxes(self):
+        result = super(AccountInvoice, self).button_reset_taxes()
+        ait = self.env['account.invoice.tax']
+        for invoice in self:
+            invoice.read()
+            costs = []
+            company = invoice.company_id
+            if invoice.amount_insurance:
+                costs.append((company.insurance_tax_id,
+                              invoice.amount_insurance))
+            if invoice.amount_freight:
+                costs.append((company.freight_tax_id,
+                              invoice.amount_freight))
+            if invoice.amount_costs:
+                costs.append((company.other_costs_tax_id,
+                              invoice.amount_costs))
+            for tax, cost in costs:
+                ait_id = ait.search([
+                    ('invoice_id', '=', invoice.id),
+                    ('tax_code_id', '=', tax.id),
+                ])
+                vals = {
+                    'tax_amount': cost,
+                    'name': tax.name,
+                    'sequence': 1,
+                    'invoice_id': invoice.id,
+                    'manual': True,
+                    'base_amount': cost,
+                    'base_code_id': tax.base_code_id.id,
+                    'tax_code_id': tax.tax_code_id.id,
+                    'amount': cost,
+                    'base': cost,
+                    'account_analytic_id':
+                        tax.account_analytic_collected_id.id or False,
+                    'account_id': tax.account_paid_id.id,
+                }
+                if ait_id:
+                    ait_id.write(vals)
+                else:
+                    ait.create(vals)
+        return result
+
 
 class AccountInvoiceLine(models.Model):
     _inherit = 'account.invoice.line'
@@ -495,7 +538,7 @@ class AccountInvoiceLine(models.Model):
     @api.one
     @api.depends('price_unit', 'discount', 'invoice_line_tax_id', 'quantity',
                  'product_id', 'invoice_id.partner_id', 'freight_value',
-                 'insurance_value', 'freight_value', 'other_costs_value',
+                 'insurance_value', 'other_costs_value',
                  'invoice_id.currency_id')
     def _compute_price(self):
         price = self.price_unit * (1 - (self.discount or 0.0) / 100.0)
@@ -540,9 +583,6 @@ class AccountInvoiceLine(models.Model):
         'Tipo do Produto', required=True, default='product')
     discount_value = fields.Float(
         string='Vlr. desconto', store=True, compute='_compute_price',
-        digits=dp.get_precision('Account'))
-    price_total = fields.Float(
-        string='Total', store=True, compute='_compute_price',
         digits=dp.get_precision('Account'))
     price_gross = fields.Float(
         string='Vlr. Bruto', store=True, compute='_compute_price',
@@ -595,7 +635,8 @@ class AccountInvoiceLine(models.Model):
         'Perc Redução de Base ICMS ST',
         digits=dp.get_precision('Discount'), default=0.00)
     icms_st_mva = fields.Float(
-        'MVA ICMS ST', digits=dp.get_precision('Discount'), default=0.00)
+        'MVA Ajustado ICMS ST',
+        digits=dp.get_precision('Discount'), default=0.00)
     icms_st_base_other = fields.Float(
         'Base ICMS ST Outras', required=True,
         digits=dp.get_precision('Account'), default=0.00)
@@ -858,7 +899,8 @@ class AccountInvoiceLine(models.Model):
         discount = values.get('discount', 0.0)
         insurance_value = values.get(
             'insurance_value', 0.0) or self.insurance_value
-        freight_value = values.get('freight_value', 0.0) or self.freight_value
+        freight_value = values.get(
+            'freight_value', 0.0) or self.freight_value
         other_costs_value = values.get(
             'other_costs_value', 0.0) or self.other_costs_value
         tax_ids = []
@@ -943,8 +985,8 @@ class AccountInvoiceLine(models.Model):
 
         product_fiscal_category_id = obj_fp_rule.with_context(
             ctx).product_fiscal_category_map(
-                kwargs.get('product_id'), kwargs.get('fiscal_category_id'),
-                partner.state_id.id)
+            kwargs.get('product_id'), kwargs.get('fiscal_category_id'),
+            partner.state_id.id)
 
         if product_fiscal_category_id:
             kwargs['fiscal_category_id'] = product_fiscal_category_id
@@ -1163,7 +1205,8 @@ class AccountInvoiceLine(models.Model):
         #     base_tax=icms_base)
         #
         # # Update tax values to new values
-        # result['value'].update(self._amount_tax_icms(tax_compute['taxes'][0]))
+        # result['value'].update(self._amount_tax_icms(
+        # tax_compute['taxes'][0]))
         #
         # # Update invoice_line_tax_id
         # # Remove all taxes with domain ICMS

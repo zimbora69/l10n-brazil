@@ -34,8 +34,10 @@ class PurchaseOrder(models.Model):
         amount_tax = 0.0
 
         for line in self.order_line:
+            price = line._calc_line_base_price(line)
+            qty = line._calc_line_quantity(line)
             taxes = line.taxes_id.compute_all(
-                line.price_unit, line.product_qty,
+                price, qty,
                 product=line.product_id.id, partner=self.partner_id,
                 fiscal_position=self.fiscal_position)
 
@@ -72,6 +74,18 @@ class PurchaseOrder(models.Model):
     amount_total = fields.Float(
         compute='_compute_amount', digits=dp.get_precision('Purchase Price'),
         string='Total', store=True, help="The total amount")
+    cnpj_cpf = fields.Char(
+        string=u'CNPJ/CPF',
+        related='partner_id.cnpj_cpf',
+    )
+    legal_name = fields.Char(
+        string=u'Razão Social',
+        related='partner_id.legal_name',
+    )
+    ie = fields.Char(
+        string=u'Inscrição Estadual',
+        related='partner_id.inscr_est',
+    )
 
     @api.model
     def _fiscal_position_map(self, result, **kwargs):
@@ -89,7 +103,7 @@ class PurchaseOrder(models.Model):
 
         result = {'value': {'fiscal_position': False}}
 
-        if self.partner_id or not self.company_id:
+        if self.partner_id and self.company_id:
             kwargs = {
                 'company_id': self.company_id.id,
                 'partner_id': self.partner_id.id,
@@ -97,7 +111,8 @@ class PurchaseOrder(models.Model):
                 'fiscal_category_id': self.fiscal_category_id.id,
                 'partner_shipping_id': self.dest_address_id.id,
             }
-        result = self._fiscal_position_map(result, **kwargs)
+            result = self._fiscal_position_map(result, **kwargs)
+
         self.fiscal_position = result['value'].get('fiscal_position')
 
     # TODO migrate to new API
