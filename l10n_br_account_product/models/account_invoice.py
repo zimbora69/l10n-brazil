@@ -242,6 +242,7 @@ class AccountInvoice(models.Model):
         'l10n_br_account_product.document.related', 'invoice_id',
         'Fiscal Document Related', readonly=True,
         states={'draft': [('readonly', False)]})
+    carrier_id = fields.Many2one('res.partner','Nome Transportadora')
     carrier_name = fields.Char('Nome Transportadora', size=32)
     vehicle_plate = fields.Char('Placa do Veiculo', size=7)
     vehicle_state_id = fields.Many2one('res.country.state', 'UF da Placa')
@@ -364,6 +365,10 @@ class AccountInvoice(models.Model):
         store=True,
         digits=dp.get_precision('Account'),
         compute='_compute_amount')
+    
+    @api.onchange('carrier_id')
+    def onchange_carrier_id(self):
+        self.carrier_name = self.carrier_id and self.carrier_id.name or False
 
     # TODO não foi migrado por causa do bug github.com/odoo/odoo/issues/1711
     def fields_view_get(self, cr, uid, view_id=None, view_type=False,

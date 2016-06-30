@@ -78,7 +78,8 @@
 									<field name="shipping_location"/>
 								</group>
 								<group name="delivery_info">
-									<field name="carrier_name"/>
+									<field name="carrier_id"/>
+									<field name="carrier_name" invisible="1"/>
 									<field name="vehicle_plate"/>
 									<field name="vehicle_state_id"/>
 									<field name="vehicle_l10n_br_city_id"/>
@@ -224,7 +225,8 @@
 							</page>
 							<page string="Transporte">
 								<group name="delivery_info">
-									<field name="carrier_name"/>
+									<field name="carrier_id"/>
+									<field name="carrier_name" invisible="1"/>
 									<field name="vehicle_plate"/>
 									<field name="vehicle_state_id"/>
 									<field name="vehicle_l10n_br_city_id"/>
