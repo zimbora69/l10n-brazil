@@ -362,7 +362,64 @@ class AccountInvoice(models.Model):
         store=True,
         digits=dp.get_precision('Account'),
         compute='_compute_amount')
-    
+    taxa_siscomex = fields.Float(string="Siscomex" , compute='get_taxa_afrmm_siscomex_cif',  inverse='set_taxa_siscomex', store =False)
+    taxa_afrmm  = fields.Float(string="AFRMM" , compute='get_taxa_afrmm_siscomex_cif',  inverse='set_taxa_afrmm', store =False)
+    taxa_cif= fields.Float(string="CIF", compute='get_taxa_afrmm_siscomex_cif', inverse='set_taxa_cif', store =False)
+
+    @api.one
+    @api.depends('invoice_line.taxa_cif', 'invoice_line.taxa_siscomex', 'invoice_line.taxa_afrmm')
+    def get_taxa_afrmm_siscomex_cif(self):
+        taxa_cif = taxa_afrmm = taxa_siscomex = 0.0
+        for line in self.invoice_line:
+            taxa_cif += line.taxa_cif
+            taxa_afrmm += line.taxa_afrmm
+            taxa_siscomex += line.taxa_siscomex
+        self.taxa_cif = taxa_cif
+        self.taxa_afrmm = taxa_afrmm
+        self.taxa_siscomex = taxa_siscomex
+
+
+    #1st
+    @api.one
+    @api.depends('taxa_cif', 'invoice_line.freight_value')
+    def set_taxa_cif(self):
+        for line in self.invoice_line:
+            line.taxa_cif = line.price_unit * line.quantity - line.freight_value
+
+    # 2
+    @api.one
+    @api.depends('taxa_siscomex', 'taxa_cif', 'invoice_line.taxa_cif')
+    def set_taxa_siscomex(self):
+        # J11/$H$8)*$R$8
+        # (line CIF / invoice CIF) * invoice siscomax
+        for line in self.invoice_line:
+            line.write({'taxa_siscomex': line.taxa_cif / self.taxa_cif}) * self.taxa_siscomex
+
+    #2
+    @api.one
+    @api.depends('taxa_afrmm',  'invoice_line.taxa_cif')
+    def set_taxa_afrmm(self):
+        # =(J11 /$H$8) * $Y$9
+        # (line cif / inv cif) * inv afrmm
+        for line in self.invoice_line:
+            line.taxa_afrmm = (line.taxa_cif / self.taxa_cif) * self.taxa_afrmm
+
+
+    @api.one
+    @api.depends('taxa_cif', 'taxa_siscomex')
+    def set_taxa_afrmm_siscomex_cif(self):
+        return True
+        taxa_cif = taxa_afrmm = taxa_siscomex = 0.0
+        for line in self.invoice_line:
+            product_price = line.price_unit * line.quantity
+            try:
+                line.write({'taxa_siscomex' :(product_price * self.taxa_cif ) / self.taxa_siscomex})
+            except:
+                pass
+        return  True
+
+
+
     @api.onchange('carrier_id')
     def onchange_carrier_id(self):
         self.carrier_name = self.carrier_id and self.carrier_id.name or False
@@ -749,7 +806,9 @@ class AccountInvoiceLine(models.Model):
     line_gross_weight = fields.Float(string='Weight', compute='_get_line_weight')
     line_net_weight = fields.Float(string='Weight', compute='_get_line_weight')
     fiscal_comment = fields.Text(u'Observação Fiscal')
-    
+    taxa_siscomex = fields.Float(string="Siscomex")
+    taxa_afrmm = fields.Float(string="AFRMM")
+    taxa_cif= fields.Float(string="CIF")
     @api.one
     @api.depends('product_id.weight','quantity','uos_id')
     def _get_line_weight(self):
@@ -1317,15 +1376,19 @@ class AccountInvoiceTax(models.Model):
                 freight_value=line.freight_value,
                 other_costs_value=line.other_costs_value)['taxes']
             for tax in taxes:
+                #get total base from taxes because in supplier invoice total base is computed
+                # based on link http://www.sosimportacao.com.br/2014/04/o-icms-na-importacao.html
+                if tax.get('total_base'):
+                    total_base = tax.get('total_base')
+                else:
+                    total_base = tax['price_unit'] * line['quantity']
                 val = {
                     'invoice_id': invoice.id,
                     'name': tax['name'],
                     'amount': tax['amount'],
                     'manual': False,
                     'sequence': tax['sequence'],
-                    'base': currency.round(
-                        tax['price_unit'] *
-                        line['quantity']),
+                    'base': currency.round(total_base),
                 }
                 if invoice.type in ('out_invoice', 'in_invoice'):
                     val['base_code_id'] = tax['base_code_id']

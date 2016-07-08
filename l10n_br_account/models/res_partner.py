@@ -41,12 +41,30 @@ class AccountFiscalPositionTemplate(models.Model):
         'Operação de Aquisição de Ativo',
         help="""Caso seja marcada essa opção, será incluido o IPI na base de
         calculo do ICMS.""")
+    import_operation = fields.Boolean(string=u'Import Operation')
     state = fields.Selection(
         [('draft', u'Rascunho'),
          ('review', u'Revisão'), ('approved', u'Aprovada'),
          ('unapproved', u'Não Aprovada')], 'Status', readonly=True,
         track_visibility='onchange', select=True, default='draft')
     cfop_id = fields.Many2one('l10n_br_account_product.cfop', 'CFOP')
+
+    @api.multi
+    def onchange_operation(self, asset_operation, import_operation, context=None):
+        result = {'value': {}}
+        if asset_operation:
+            result['value']['import_operation'] = False
+            result['value']['asset_operation'] = True
+        if import_operation and not asset_operation:
+            result['value']['asset_operation'] = False
+            result['value']['import_operation'] = True
+        if import_operation and asset_operation:
+            result['value']['asset_operation'] = False
+            result['value']['import_operation'] = False
+        return result
+
+
+
 
     @api.multi
     def onchange_type(self, type):
@@ -111,6 +129,7 @@ class AccountFiscalPositionTemplate(models.Model):
                           position.cfop_id and position.cfop_id.id or False,
                           'inv_copy_note': position.inv_copy_note,
                           'asset_operation': position.asset_operation,
+                          'import_operation': position.asset_operation,
                           'fiscal_category_id':
                           position.fiscal_category_id and
                           position.fiscal_category_id.id or False})
@@ -189,11 +208,26 @@ class AccountFiscalPosition(models.Model):
         'Operação de Aquisição de Ativo',
         help="""Caso seja marcada essa opção, será incluido o IPI na base de
         calculo do ICMS.""")
+    import_operation = fields.Boolean(string=u'Import Operation')
     state = fields.Selection(
         [('draft', u'Rascunho'),
          ('review', u'Revisão'), ('approved', u'Aprovada'),
          ('unapproved', u'Não Aprovada')], 'Status', readonly=True,
         track_visibility='onchange', select=True, default='draft')
+
+    @api.multi
+    def onchange_operation(self, asset_operation, import_operation, context=None):
+        result = {'value': {}}
+        if asset_operation:
+            result['value']['import_operation'] = False
+            result['value']['asset_operation'] = True
+        if import_operation and not asset_operation:
+            result['value']['asset_operation'] = False
+            result['value']['import_operation'] = True
+        if import_operation and asset_operation:
+            result['value']['asset_operation'] = False
+            result['value']['import_operation'] = False
+        return result
 
     @api.multi
     def onchange_type(self, type):

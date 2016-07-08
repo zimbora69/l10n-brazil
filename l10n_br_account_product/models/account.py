@@ -97,6 +97,7 @@ class AccountTax(models.Model):
                 tax['total_base_other'] = 0.00
 
         result['taxes'] = taxes
+        
         return result
 
     # TODO
@@ -139,6 +140,7 @@ class AccountTax(models.Model):
                                                      force_excluded)
         totaldc = icms_value = 0.0
         ipi_value = 0.0
+        icms_percent_reduction = ii_value = pis_value = cofins_value = 0.0
         calculed_taxes = []
 
         for tax in result['taxes']:
@@ -174,15 +176,46 @@ class AccountTax(models.Model):
         for ipi in result_ipi['taxes']:
             ipi_value += ipi['amount']
 
+        # Calcula o II
+        specific_ii = [tx for tx in result['taxes'] if tx['domain'] == 'ii']
+        result_ii = self._compute_tax(cr, uid, specific_ii, result['total'],
+                                      product, quantity, precision)
+        for ii in result_ii['taxes']:
+            ii_value += ii['amount']
+
+            # Calcula o PIS
+        specific_pis = [tx for tx in result['taxes'] if tx['domain'] == 'pis']
+        result_pis = self._compute_tax(cr, uid, specific_pis, result['total'],
+                                       product, quantity, precision)
+        for pis in result_pis['taxes']:
+            pis_value += pis['amount']
+
+            # Calcula o COFINS
+        specific_cofins = [tx for tx in result['taxes'] if tx['domain'] == 'cofins']
+        result_cofins = self._compute_tax(cr, uid, specific_cofins, result['total'],
+                                          product, quantity, precision)
+        for cofins in result_cofins['taxes']:
+            cofins_value += cofins['amount']
+
+
         # Calcula ICMS
-        specific_icms = [tx for tx in result['taxes']
-                         if tx['domain'] == 'icms']
+        specific_icms = [tx for tx in result['taxes'] if tx['domain'] == 'icms']
         if fiscal_position and fiscal_position.asset_operation:
             total_base = result['total'] + insurance_value + \
-                freight_value + other_costs_value + ipi_value
+                         freight_value + other_costs_value + ipi_value
+        elif fiscal_position and fiscal_position.import_operation:
+            try:
+                icms_percent = specific_icms[0]['percent']
+            except:
+                icms_percent = 0.0
+            if icms_percent:
+                total_base = (
+                             ii_value + ipi_value + pis_value + cofins_value + freight_value + insurance_value + other_costs_value) / (
+                             1 - icms_percent)
+
         else:
             total_base = result['total'] + insurance_value + \
-                freight_value + other_costs_value
+                         freight_value + other_costs_value
 
         result_icms = self._compute_tax(
             cr,
@@ -236,7 +269,7 @@ class AccountTax(models.Model):
             date = datetime.now().strftime('%Y-%m-%d')
             tax_estimate_ids = obj_tax_estimate.search(
                 cr, uid, [('fiscal_classification_id', '=',
-                           product.fiscal_classification_id.id),
+                           False),
                           '|', ('date_start', '=', False),
                           ('date_start', '<=', date),
                           '|', ('date_end', '=', False),
