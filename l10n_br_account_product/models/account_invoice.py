@@ -362,62 +362,40 @@ class AccountInvoice(models.Model):
         store=True,
         digits=dp.get_precision('Account'),
         compute='_compute_amount')
-    taxa_siscomex = fields.Float(string="Siscomex" , compute='get_taxa_afrmm_siscomex_cif',  inverse='set_taxa_siscomex', store =False)
-    taxa_afrmm  = fields.Float(string="AFRMM" , compute='get_taxa_afrmm_siscomex_cif',  inverse='set_taxa_afrmm', store =False)
-    taxa_cif= fields.Float(string="CIF", compute='get_taxa_afrmm_siscomex_cif', inverse='set_taxa_cif', store =False)
+    cif = fields.Float(string="CIF", compute='get_afrmm_siscomex_cif', store=True)
+    taxa_siscomex = fields.Float(string="Siscomex" , compute='get_afrmm_siscomex_cif',  inverse='set_taxa_siscomex', store =False)
+    afrmm  = fields.Float(string="AFRMM" , compute='get_afrmm_siscomex_cif',  inverse='set_afrmm', store =False)
+
 
     @api.one
-    @api.depends('invoice_line.taxa_cif', 'invoice_line.taxa_siscomex', 'invoice_line.taxa_afrmm')
-    def get_taxa_afrmm_siscomex_cif(self):
-        taxa_cif = taxa_afrmm = taxa_siscomex = 0.0
+    @api.depends('invoice_line.cif', 'invoice_line.taxa_siscomex', 'invoice_line.afrmm')
+    def get_afrmm_siscomex_cif(self):
+        cif = afrmm = taxa_siscomex = 0.0
         for line in self.invoice_line:
-            taxa_cif += line.taxa_cif
-            taxa_afrmm += line.taxa_afrmm
+            cif += line.cif
+            afrmm += line.afrmm
             taxa_siscomex += line.taxa_siscomex
-        self.taxa_cif = taxa_cif
-        self.taxa_afrmm = taxa_afrmm
+        self.cif = cif
+        self.afrmm = afrmm
         self.taxa_siscomex = taxa_siscomex
 
 
-    #1st
-    @api.one
-    @api.depends('taxa_cif', 'invoice_line.freight_value')
-    def set_taxa_cif(self):
-        for line in self.invoice_line:
-            line.taxa_cif = line.price_unit * line.quantity - line.freight_value
 
-    # 2
     @api.one
-    @api.depends('taxa_siscomex', 'taxa_cif', 'invoice_line.taxa_cif')
+    @api.depends('taxa_siscomex', 'cif', 'invoice_line.cif')
     def set_taxa_siscomex(self):
         # J11/$H$8)*$R$8
         # (line CIF / invoice CIF) * invoice siscomax
         for line in self.invoice_line:
-            line.write({'taxa_siscomex': line.taxa_cif / self.taxa_cif}) * self.taxa_siscomex
+            line.write({'taxa_siscomex': line.cif / self.cif}) * self.taxa_siscomex
 
-    #2
     @api.one
-    @api.depends('taxa_afrmm',  'invoice_line.taxa_cif')
-    def set_taxa_afrmm(self):
+    @api.depends('afrmm',  'invoice_line.cif')
+    def set_afrmm(self):
         # =(J11 /$H$8) * $Y$9
         # (line cif / inv cif) * inv afrmm
         for line in self.invoice_line:
-            line.taxa_afrmm = (line.taxa_cif / self.taxa_cif) * self.taxa_afrmm
-
-
-    @api.one
-    @api.depends('taxa_cif', 'taxa_siscomex')
-    def set_taxa_afrmm_siscomex_cif(self):
-        return True
-        taxa_cif = taxa_afrmm = taxa_siscomex = 0.0
-        for line in self.invoice_line:
-            product_price = line.price_unit * line.quantity
-            try:
-                line.write({'taxa_siscomex' :(product_price * self.taxa_cif ) / self.taxa_siscomex})
-            except:
-                pass
-        return  True
-
+            line.afrmm = (line.cif / self.cif) * self.afrmm
 
 
     @api.onchange('carrier_id')
@@ -807,8 +785,15 @@ class AccountInvoiceLine(models.Model):
     line_net_weight = fields.Float(string='Weight', compute='_get_line_weight')
     fiscal_comment = fields.Text(u'Observação Fiscal')
     taxa_siscomex = fields.Float(string="Siscomex")
-    taxa_afrmm = fields.Float(string="AFRMM")
-    taxa_cif= fields.Float(string="CIF")
+    afrmm = fields.Float(string="AFRMM")
+    cif= fields.Float(string="CIF", compute='_get_cif_value', store=True)
+
+    @api.one
+    @api.depends('freight_value', 'insurance_value', 'other_costs_value', 'price_unit','quantity' )
+    def _get_cif_value(self):
+        #FOB + FREIGHT + INSURANCE
+        self.cif =   self.price_unit * self.quantity + self.freight_value + self.insurance_value + self.other_costs_value
+
     @api.one
     @api.depends('product_id.weight','quantity','uos_id')
     def _get_line_weight(self):

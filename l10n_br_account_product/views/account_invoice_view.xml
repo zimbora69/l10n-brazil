@@ -173,8 +173,8 @@
 				</field>
 				<field name="amount_total" position="before">
 					<field name="taxa_siscomex"/>
-					<field name="taxa_afrmm"/>
-					<field name="taxa_cif"/>
+					<field name="afrmm"/>
+					<field name="cif"/>
 				</field>
 				<notebook>
 					<page string="Documentos Relacionados">
@@ -315,8 +315,8 @@
 										<field name="insurance_value" on_change="onchange_invoice_line_tax_id(product_id, parent.partner_id, invoice_line_tax_id, quantity, price_unit, discount, fiscal_position, insurance_value, freight_value, other_costs_value, context)"/>
 										<field name="other_costs_value" on_change="onchange_invoice_line_tax_id(product_id, parent.partner_id, invoice_line_tax_id, quantity, price_unit, discount, fiscal_position, insurance_value, freight_value, other_costs_value, context)"/>
 										<field name="taxa_siscomex" readonly="1"/>
-										<field name="taxa_afrmm" readonly="1"/>
-										<field name="taxa_cif" readonly="1"/>
+										<field name="afrmm" readonly="1"/>
+										<field name="cif" />
 									</group>
 									<group>
 										<field name="product_type" attrs="{'readonly': [('product_id','!=', False)]}"/>
