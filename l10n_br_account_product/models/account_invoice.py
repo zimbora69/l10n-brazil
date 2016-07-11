@@ -363,8 +363,8 @@ class AccountInvoice(models.Model):
         digits=dp.get_precision('Account'),
         compute='_compute_amount')
     cif = fields.Float(string="CIF", compute='get_afrmm_siscomex_cif', store=True, readonly=True, states={'draft': [('readonly', False)]})
-    taxa_siscomex = fields.Float(string="Siscomex" , compute='get_afrmm_siscomex_cif',  inverse='set_afrmm_siscomex', store =False, readonly=True, states={'draft': [('readonly', False)]})
-    afrmm  = fields.Float(string="AFRMM" , compute='get_afrmm_siscomex_cif',  inverse='set_afrmm_siscomex', store =False,readonly=True, states={'draft': [('readonly', False)]})
+    taxa_siscomex = fields.Float(string="Siscomex" , compute='get_afrmm_siscomex_cif',  inverse='set_afrmm_siscomex', store =True, readonly=True, states={'draft': [('readonly', False)]})
+    afrmm  = fields.Float(string="AFRMM" , compute='get_afrmm_siscomex_cif',  inverse='set_afrmm_siscomex', store =True,readonly=True, states={'draft': [('readonly', False)]})
 
 
     @api.one
@@ -382,7 +382,7 @@ class AccountInvoice(models.Model):
 
 
     @api.one
-    @api.depends('afrmm',  'taxa_siscomex','cif','invoice_line.cif')
+    @api.depends('afrmm',  'taxa_siscomex','cif', 'invoice_line.cif')
     def set_afrmm_siscomex(self):
         # =(J11 /$H$8) * $Y$9
         # (line cif / inv cif) * inv afrmm
@@ -390,9 +390,8 @@ class AccountInvoice(models.Model):
         siscomex = self.taxa_siscomex
         affrm = self.afrmm
         for line in self.invoice_line:
-            line.afrmm = (line.cif / cif) * affrm
             line.taxa_siscomex = (line.cif / cif) * siscomex
-
+            line.afrmm = (line.cif / cif) * affrm
 
     @api.onchange('carrier_id')
     def onchange_carrier_id(self):
