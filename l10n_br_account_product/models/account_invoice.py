@@ -390,9 +390,13 @@ class AccountInvoice(models.Model):
         siscomex = self.taxa_siscomex
         affrm = self.afrmm
         for line in self.invoice_line:
-            line.taxa_siscomex = (line.cif / cif) * siscomex
-            line.afrmm = (line.cif / cif) * affrm
-
+            try:
+                line.taxa_siscomex = (line.cif / cif) * siscomex
+                line.afrmm = (line.cif / cif) * affrm
+            except:
+                line.taxa_siscomex = 0.0
+                line.afrmm = 0.0
+                
     @api.onchange('carrier_id')
     def onchange_carrier_id(self):
         self.carrier_name = self.carrier_id and self.carrier_id.name or False
