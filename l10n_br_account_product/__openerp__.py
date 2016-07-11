@@ -28,6 +28,7 @@
     'depends': [
         'l10n_br_data_account',
         'account_product_fiscal_classification',
+        'stock', # for incoterm
     ],
     'data': [
         'l10n_br_account_product_sequence.xml',

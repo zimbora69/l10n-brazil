@@ -78,6 +78,7 @@
 									<field name="shipping_location"/>
 								</group>
 								<group name="delivery_info">
+									<field name="incoterm"/>
 									<field name="carrier_id"/>
 									<field name="carrier_name" invisible="1"/>
 									<field name="vehicle_plate"/>
@@ -226,6 +227,7 @@
 							</page>
 							<page string="Transporte">
 								<group name="delivery_info">
+									<field name="incoterm"/>
 									<field name="carrier_id"/>
 									<field name="carrier_name" invisible="1"/>
 									<field name="vehicle_plate"/>
