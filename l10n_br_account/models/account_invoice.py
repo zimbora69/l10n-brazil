@@ -322,10 +322,10 @@ class AccountInvoice(models.Model):
                 self.write(
                     {'internal_number': seq_number, 'number': seq_number})
             else:
-                if invoice.type == 'in_invoice':
+
                     self.write(
-                        {'internal_number': invoice.supplier_invoice_number,
-                         'number': invoice.supplier_invoice_number})
+                        {'internal_number': invoice.vendor_serie,
+                         'number': invoice.vendor_serie})
         return True
 
     @api.multi
