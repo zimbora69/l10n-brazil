@@ -120,6 +120,7 @@
 
 		<record id="account.action_invoice_tree2" model="ir.actions.act_window">
 			<field name="domain">[('type', '=', 'in_invoice'), ('fiscal_type', '=', 'service')]</field>
+			<field name="context">{'default_issuer':'1','default_type': 'in_invoice', 'type': 'in_invoice', 'journal_type': 'purchase'}</field>
 		</record>
 
 		<record id="account.action_invoice_tree3" model="ir.actions.act_window">
