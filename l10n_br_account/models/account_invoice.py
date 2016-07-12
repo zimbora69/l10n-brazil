@@ -321,6 +321,11 @@ class AccountInvoice(models.Model):
                     invoice.document_serie_id.internal_sequence_id.id)
                 self.write(
                     {'internal_number': seq_number, 'number': seq_number})
+            else:
+                if invoice.type == 'in_invoice':
+                    self.write(
+                        {'internal_number': invoice.supplier_invoice_number,
+                         'number': invoice.supplier_invoice_number})
         return True
 
     @api.multi
