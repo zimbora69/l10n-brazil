@@ -319,13 +319,18 @@ class AccountInvoice(models.Model):
 
                 seq_number = sequence_obj.get_id(
                     invoice.document_serie_id.internal_sequence_id.id)
-                self.write(
-                    {'internal_number': seq_number, 'number': seq_number})
+                if invoice.fiscal_type == 'product':
+                    self.write(
+                        {'internal_number': seq_number, 'number': seq_number})
+                else:
+                    self.write(
+                        {'internal_number': invoice.vendor_serie or invoice.supplier_invoice_number,
+                         'number': invoice.vendor_serie or invoice.supplier_invoice_number})
             else:
 
-                    self.write(
-                        {'internal_number': invoice.vendor_serie,
-                         'number': invoice.vendor_serie})
+                self.write(
+                    {'internal_number': invoice.vendor_serie or invoice.supplier_invoice_number,
+                     'number': invoice.vendor_serie or invoice.supplier_invoice_number})
         return True
 
     @api.multi

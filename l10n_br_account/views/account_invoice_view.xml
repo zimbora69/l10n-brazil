@@ -171,8 +171,11 @@
 					<attribute name="on_changes">onchange_company_id(company_id, partner_id, type, invoice_line, currency_id, fiscal_category_id)</attribute>
 				</field>
 				<field name="date_invoice" position="before">
-					<field name="document_serie_id" domain="[('fiscal_type','=','service'),('fiscal_document_id','=',fiscal_document_id),('company_id','=',company_id)]" attrs="{'invisible': [('issuer', '=', '1')], 'required': [('issuer', '=', '0')]}" />
-					<field name="fiscal_document_id" required="1"/>
+					<field name="document_serie_id"
+						   domain="[('fiscal_type','=','service'),('fiscal_document_id','=',fiscal_document_id),('company_id','=',company_id)]"
+						   attrs="{'invisible': ['|', ('issuer', '=', '1'),('fiscal_type', '=', 'service')], 'required': ['|',('fiscal_type', '=', 'product'),('issuer', '=', '0')]}" />
+					<field name="fiscal_document_id"
+					attrs="{'invisible': ['|', ('issuer', '=', '1'),('fiscal_type', '=', 'service')], 'required': ['|',('fiscal_type', '=', 'product'),('issuer', '=', '0')]}"/>
 					<field name="vendor_serie" attrs="{'invisible': [('issuer', '=', '0')], 'required': [('issuer', '=', '1')]}" />
 					<field name="issuer" attrs="{'invisible': [('type', '=', 'out_invoice')]}" />
 				</field>
