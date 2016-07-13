@@ -487,7 +487,6 @@ class AccountInvoice(models.Model):
                 'move_name': move.name,
             }
             inv.with_context(ctx).write(vals)
-            move.write({'name': inv.internal_number})
             # Pass invoice in context in method post: used if you want to get the same
             # account move reference when creating the same invoice after a cancelled one:
             move.post()
