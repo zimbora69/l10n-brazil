@@ -231,12 +231,16 @@ class AccountTax(models.Model):
 
         # Estimate Taxes
         if fiscal_position and fiscal_position.asset_operation and product:
-            product = self.pool.get('product.product').browse(cr, uid, product)
+            if isinstance(product, int):
+                product = self.pool.get('product.product').browse(cr, uid, product)
             obj_tax_estimate = self.pool.get('l10n_br_tax.estimate')
             date = datetime.now().strftime('%Y-%m-%d')
+            fiscal_classification = False
+            if product.fiscal_classification_id:
+                fiscal_classification = product.fiscal_classification_id.id
             tax_estimate_ids = obj_tax_estimate.search(
                 cr, uid, [('fiscal_classification_id', '=',
-                           product.fiscal_classification_id.id),
+                           fiscal_classification),
                           '|', ('date_start', '=', False),
                           ('date_start', '<=', date),
                           '|', ('date_end', '=', False),
