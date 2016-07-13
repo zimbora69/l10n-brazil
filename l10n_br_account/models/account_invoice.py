@@ -316,10 +316,8 @@ class AccountInvoice(models.Model):
                         _("O número: %s da série: %s, esta inutilizado") % (
                             sequence.number_next,
                             invoice.document_serie_id.name))
-
-                seq_number = sequence_obj.get_id(
-                    invoice.document_serie_id.internal_sequence_id.id)
-                if invoice.fiscal_type == 'product':
+                if invoice.fiscal_type == 'product' or invoice.type == 'out_invoice':
+                    seq_number = sequence_obj.get_id(invoice.document_serie_id.internal_sequence_id.id)
                     self.write(
                         {'internal_number': seq_number, 'number': seq_number})
                 else:
