@@ -58,3 +58,7 @@ class ProductTemplate(models.Model):
 
     service_type_id = fields.Many2one(
         'l10n_br_account.service.type', u'Tipo de Serviço')
+     
+    @api.onchange('name')
+    def onchange_product(self):
+        self.description_sale = self.name
